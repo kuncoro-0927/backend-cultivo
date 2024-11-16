@@ -1,15 +1,18 @@
-import express from "express";
-import {
-  getDaerah,
-  getDaerahById,
-  saveDaerah,
-  updateDaerah,
-  deleteDaerah,
-} from "../controllers/DaerahController.js";
-const router = express.Router();
-router.get("/daerah", getDaerah);
-router.get("/daerah/:id", getDaerahById);
-router.post("/daerah", saveDaerah);
-router.patch("/daerah/:id", updateDaerah);
-router.delete("/daerah/:id", deleteDaerah);
-export default router;
+const express = require("express");
+const {
+  tambahDaerah,
+  ambilDataDaerah,
+  ambilDaerahId,
+  rubahDaerah,
+  hapusDaerah,
+} = require("../controllers/DaerahController.js");
+
+const DaerahRoutes = express.Router();
+
+DaerahRoutes.get("/daerah", ambilDataDaerah);
+DaerahRoutes.get("/daerah/:id", ambilDaerahId);
+DaerahRoutes.post("/daerah", tambahDaerah);
+DaerahRoutes.put("/daerah/:id", rubahDaerah);
+DaerahRoutes.delete("/daerah/:id", hapusDaerah);
+
+module.exports = DaerahRoutes;
