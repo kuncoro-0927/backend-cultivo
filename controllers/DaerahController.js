@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Batas file 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const fileTypes = /jpeg|jpg|png|svg/;
     const mimeType = fileTypes.test(file.mimetype);
@@ -29,24 +29,22 @@ const upload = multer({
   },
 }).single("image");
 
-// Fungsi untuk menambah data daerah
 const tambahDaerah = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ msg: err.message });
     }
 
-    const { city } = req.body;
-    const image = req.file ? req.file.path : null; // Ambil path gambar yang di-upload
-
+    const { name } = req.body;
+    const image = req.file ? req.file.path : null;
     try {
       await query(
-        "INSERT INTO daerah (city, image, createdAt, updatedAt) VALUES(?, ?, NOW(), NOW())",
-        [city, image]
+        "INSERT INTO city (name, image, created_at, updated_at) VALUES(?, ?, NOW(), NOW())",
+        [name, image]
       );
       return res.status(200).json({
         msg: "Penambahan daerah berhasil",
-        data: { city, image },
+        data: { name, image },
       });
     } catch (error) {
       console.log("Penambahan daerah gagal", error);
@@ -58,10 +56,9 @@ const tambahDaerah = async (req, res) => {
   });
 };
 
-// Fungsi untuk mengambil semua data daerah
 const ambilDataDaerah = async (req, res) => {
   try {
-    const result = await query("SELECT * FROM daerah");
+    const result = await query("SELECT * FROM city");
     return res.status(200).json({ msg: "Ambil data berhasil", data: result });
   } catch (error) {
     console.log("Ambil data gagal", error);
@@ -77,28 +74,24 @@ const rubahDaerah = async (req, res) => {
       return res.status(400).json({ msg: err.message });
     }
 
-    const { city } = req.body;
+    const { name } = req.body;
     const { id } = req.params;
     let image = req.file ? req.file.path : null;
 
     try {
-      // Jika tidak ada gambar yang di-upload, biarkan gambar lama
       if (!image) {
-        const result = await query("SELECT image FROM daerah WHERE id = ?", [
-          id,
-        ]);
-        image = result[0]?.image; // Ambil gambar lama dari database jika tidak ada gambar baru
+        const result = await query("SELECT image FROM city WHERE id = ?", [id]);
+        image = result[0]?.image;
       }
 
-      // Update data daerah
       await query(
-        "UPDATE daerah SET city = ?, image = ?, updatedAt = NOW() WHERE id = ?",
-        [city, image, id]
+        "UPDATE city SET name = ?, image = ?, updated_at = NOW() WHERE id = ?",
+        [name, image, id]
       );
 
       return res.status(200).json({
         msg: "Update data daerah berhasil",
-        data: { city, image },
+        data: { name, image },
       });
     } catch (error) {
       console.log("Update data daerah gagal", error);
@@ -110,12 +103,11 @@ const rubahDaerah = async (req, res) => {
   });
 };
 
-// Fungsi untuk menghapus data daerah
 const hapusDaerah = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await query("DELETE FROM daerah WHERE id = ?", [id]);
+    await query("DELETE FROM city WHERE id = ?", [id]);
     return res.status(200).json({ msg: "Hapus daerah berhasil" });
   } catch (error) {
     console.log("Hapus daerah gagal", error);
@@ -125,11 +117,10 @@ const hapusDaerah = async (req, res) => {
   }
 };
 
-// Fungsi untuk mengambil data daerah berdasarkan ID
 const ambilDaerahId = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await query("SELECT * FROM daerah WHERE id = ?", [id]);
+    const result = await query("SELECT * FROM city WHERE id = ?", [id]);
     return res
       .status(200)
       .json({ msg: "Ambil data ID berhasil", data: result });

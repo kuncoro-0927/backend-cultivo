@@ -9,8 +9,9 @@ const db = mysql2.createPool({
 
 async function testConnection() {
   try {
-    await db.getConnection();
-    console.log("Connection Database Succses :)");
+    const connection = await db.getConnection();
+    console.log("Connection Database Success :)");
+    connection.release();
   } catch (error) {
     console.error("Database Connection Failed", error);
   }
@@ -18,10 +19,11 @@ async function testConnection() {
 
 async function query(command, values) {
   try {
-    const [value] = await db.query(command, values ?? []);
-    return value;
+    const [rows] = await db.query(command, values ?? []);
+    return rows;
   } catch (error) {
-    console.error(error);
+    console.error("Query Error: ", error);
+    throw error;
   }
 }
 
