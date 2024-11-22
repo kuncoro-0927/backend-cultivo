@@ -6,7 +6,7 @@ const StrategyJWT = passportJWT.Strategy;
 
 const secretKey =
   process.env.JWT_SECRET ||
-  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af"; // Gunakan env var di production
+  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af";
 
 passport.use(
   new StrategyJWT(
@@ -16,14 +16,13 @@ passport.use(
     },
     (jwtPayload, done) => {
       if (!jwtPayload || !jwtPayload.id) {
-        return done(null, false); // Jika token tidak valid
+        return done(null, false);
       }
-      return done(null, jwtPayload); // Berikan payload user
+      return done(null, jwtPayload);
     }
   )
 );
 
-// // Middleware untuk melindungi route
 const authenticateUser = passport.authenticate("jwt", { session: false });
 
 module.exports = authenticateUser;
