@@ -1,33 +1,6 @@
 const { query } = require("../config/db.js");
-const multer = require("multer");
 const path = require("path");
-
-const storage = multer.diskStorage({
-  destination: (cb) => {
-    cb(null, "images/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const fileTypes = /jpeg|jpg|png|svg/;
-    const mimeType = fileTypes.test(file.mimetype);
-    const extname = fileTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-
-    if (mimeType && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Hanya file gambar yang diizinkan"));
-    }
-  },
-}).single("image");
+const upload = require("../middleware/Multer.js");
 
 const tambahDaerah = async (req, res) => {
   upload(req, res, async (err) => {
@@ -36,15 +9,20 @@ const tambahDaerah = async (req, res) => {
     }
 
     const { name } = req.body;
-    const image = req.file ? req.file.path : null;
+    const imageName = req.file ? req.file.filename : null;
+    const image = imageName ? path.join("public/images", imageName) : null;
+    const url = imageName
+      ? `${req.protocol}://${req.get("host")}/images/${imageName}`
+      : null;
+
     try {
       await query(
-        "INSERT INTO city (name, image, created_at, updated_at) VALUES(?, ?, NOW(), NOW())",
-        [name, image]
+        "INSERT INTO city (name, image, url, created_at, updated_at) VALUES(?, ?, ?, NOW(), NOW())",
+        [name, image, url]
       );
       return res.status(200).json({
         msg: "Penambahan daerah berhasil",
-        data: { name, image },
+        data: { name, image, url },
       });
     } catch (error) {
       console.log("Penambahan daerah gagal", error);
@@ -76,22 +54,29 @@ const rubahDaerah = async (req, res) => {
 
     const { name } = req.body;
     const { id } = req.params;
-    let image = req.file ? req.file.path : null;
+    let imageName = req.file ? req.file.filename : null;
+    let image = imageName ? path.join("public/images", imageName) : null;
+    let url = imageName
+      ? `${req.protocol}://${req.get("host")}/images/${imageName}`
+      : null;
 
     try {
-      if (!image) {
+      if (!imageName) {
         const result = await query("SELECT image FROM city WHERE id = ?", [id]);
         image = result[0]?.image;
+        url = result[0]?.image
+          ? `${req.protocol}://${req.get("host")}/${result[0].image}`
+          : null; // Jika tidak ada gambar baru, ambil URL yang lama
       }
 
       await query(
-        "UPDATE city SET name = ?, image = ?, updated_at = NOW() WHERE id = ?",
-        [name, image, id]
+        "UPDATE city SET name = ?, image = ?, url = ?, updated_at = NOW() WHERE id = ?",
+        [name, image, url, id]
       );
 
       return res.status(200).json({
         msg: "Update data daerah berhasil",
-        data: { name, image },
+        data: { name, image, url },
       });
     } catch (error) {
       console.log("Update data daerah gagal", error);

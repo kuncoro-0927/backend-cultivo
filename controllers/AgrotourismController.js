@@ -2,28 +2,22 @@ const { query } = require("../config/db");
 const multer = require("multer");
 const path = require("path");
 
-// Menyimpan file ke folder images/
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Pastikan folder 'images/' ada atau buat otomatis
-    cb(null, "images/"); // Menentukan direktori tempat file disimpan
+    cb(null, "images/");
   },
   filename: (req, file, cb) => {
-    // Menggunakan timestamp untuk nama file agar unik
-    cb(null, Date.now() + path.extname(file.originalname)); // Menentukan nama file
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
-// Konfigurasi upload
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Batas ukuran file maksimal 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 }).fields([
-  { name: "image", maxCount: 1 }, // Memungkinkan 1 file untuk 'image'
-  { name: "gallery", maxCount: 10 }, // Memungkinkan hingga 10 file untuk 'gallery'
+  { name: "image", maxCount: 1 },
+  { name: "gallery", maxCount: 10 },
 ]);
-
-module.exports = upload;
 
 const tambahAgrotourism = async (req, res) => {
   upload(req, res, async (err) => {
