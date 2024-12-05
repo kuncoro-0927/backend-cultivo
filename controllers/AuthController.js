@@ -35,7 +35,7 @@ const registerUser = async (req, res) => {
     const token = jwt.sign(
       { id: result.insertId, name, role: "user" },
       secretKey,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" }
     );
 
     return res.status(201).json({ message: "Registrasi berhasil", token });
@@ -67,7 +67,9 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Password salah" });
     }
 
-    const role = user.role_id === 1 ? "admin" : "user";
+    // const role = user.role_id === 1 ? "admin" : "user";
+    const role =
+      user.role_id === 1 ? "admin" : user.role_id === 3 ? "attendant" : "user";
 
     const token = jwt.sign(
       {
