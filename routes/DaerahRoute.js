@@ -7,12 +7,12 @@ const {
   hapusDaerah,
 } = require("../controllers/DaerahController.js");
 
-const DaerahRoutes = express.Router();
+const DaerahRoute = express.Router();
 
-DaerahRoutes.get("/daerah", ambilDataDaerah);
-DaerahRoutes.get("/daerah/:id", ambilDaerahId);
-DaerahRoutes.post("/daerah", tambahDaerah);
-DaerahRoutes.put("/daerah/:id", rubahDaerah);
-DaerahRoutes.delete("/daerah/:id", hapusDaerah);
+DaerahRoute.get("/daerah", ambilDataDaerah);
+DaerahRoute.get("/daerah/:id", ambilDaerahId);
+DaerahRoute.post("/daerah", tambahDaerah);
+DaerahRoute.put("/daerah/:id", rubahDaerah);
+DaerahRoute.delete("/daerah/:id", hapusDaerah);
 
-module.exports = DaerahRoutes;
+module.exports = DaerahRoute;

@@ -66,7 +66,7 @@ const rubahDaerah = async (req, res) => {
         image = result[0]?.image;
         url = result[0]?.image
           ? `${req.protocol}://${req.get("host")}/${result[0].image}`
-          : null; // Jika tidak ada gambar baru, ambil URL yang lama
+          : null;
       }
 
       await query(

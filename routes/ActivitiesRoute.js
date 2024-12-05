@@ -7,12 +7,12 @@ const {
   hapusAktivitas,
 } = require("../controllers/ActivitiesController.js");
 
-const ActivitiesRoutes = express.Router();
+const ActivitiesRoute = express.Router();
 
-ActivitiesRoutes.get("/aktivitas", ambilDataAktivitas);
-ActivitiesRoutes.get("/aktivitas/:id", ambilAktivitasId);
-ActivitiesRoutes.post("/aktivitas", tambahAktivitas);
-ActivitiesRoutes.put("/aktivitas/:id", rubahAktivitas);
-ActivitiesRoutes.delete("/aktivitas/:id", hapusAktivitas);
+ActivitiesRoute.get("/aktivitas", ambilDataAktivitas);
+ActivitiesRoute.get("/aktivitas/:id", ambilAktivitasId);
+ActivitiesRoute.post("/aktivitas", tambahAktivitas);
+ActivitiesRoute.put("/aktivitas/:id", rubahAktivitas);
+ActivitiesRoute.delete("/aktivitas/:id", hapusAktivitas);
 
-module.exports = ActivitiesRoutes;
+module.exports = ActivitiesRoute;

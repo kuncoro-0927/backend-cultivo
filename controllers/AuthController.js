@@ -4,9 +4,8 @@ const { query } = require("../config/db.js");
 
 const secretKey =
   process.env.JWT_SECRET ||
-  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af"; // Gunakan .env untuk keamanan
+  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af";
 
-// Controller Register
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -30,13 +29,13 @@ const registerUser = async (req, res) => {
 
     const result = await query(
       "INSERT INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)",
-      [name, email, hashedPassword, 2] // Role 2 untuk user biasa
+      [name, email, hashedPassword, 2]
     );
 
     const token = jwt.sign(
       { id: result.insertId, name, role: "user" },
       secretKey,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
     return res.status(201).json({ message: "Registrasi berhasil", token });
@@ -71,7 +70,15 @@ const loginUser = async (req, res) => {
     const role = user.role_id === 1 ? "admin" : "user";
 
     const token = jwt.sign(
-      { id: user.id, name: user.name, role: role },
+      {
+        id: user.id,
+        name: user.name,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        phonenumber: user.phonenumber,
+        role: role,
+      },
       secretKey,
       {
         expiresIn: "1h",
@@ -82,6 +89,10 @@ const loginUser = async (req, res) => {
       message: "Login berhasil",
       token,
       name: user.name,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email,
+      phonenumber: user.phonenumber,
       role,
     });
   } catch (err) {

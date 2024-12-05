@@ -5,14 +5,16 @@ const {
   ambilAgrotourismById,
   updateAgrotourism,
   hapusAgrotourism,
+  ambilAgrotourismByCity,
 } = require("../controllers/AgrotourismController.js");
+const authenticateUser = require("../middleware/Passport.js");
+const AgrotourismRoute = express.Router();
 
-const AgrotourismRoutes = express.Router();
+AgrotourismRoute.get("/agrotourism", ambilSemuaAgrotourism);
+AgrotourismRoute.get("/agrotourism/:id", ambilAgrotourismById);
+AgrotourismRoute.get("/agrotourism/city/:id", ambilAgrotourismByCity);
+AgrotourismRoute.post("/agrotourism", authenticateUser, tambahAgrotourism);
+AgrotourismRoute.put("/agrotourism/:id", authenticateUser, updateAgrotourism);
+AgrotourismRoute.delete("/agrotourism/:id", authenticateUser, hapusAgrotourism);
 
-AgrotourismRoutes.get("/agrotourism", ambilSemuaAgrotourism);
-AgrotourismRoutes.get("/agrotourism/:id", ambilAgrotourismById);
-AgrotourismRoutes.post("/agrotourism", tambahAgrotourism);
-AgrotourismRoutes.put("/agrotourism/:id", updateAgrotourism);
-AgrotourismRoutes.delete("/agrotourism/:id", hapusAgrotourism);
-
-module.exports = AgrotourismRoutes;
+module.exports = AgrotourismRoute;

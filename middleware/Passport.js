@@ -16,7 +16,7 @@ passport.use(
     },
     (jwtPayload, done) => {
       if (!jwtPayload || !jwtPayload.id) {
-        return done(null, false);
+        return done(null, false, { message: "Invalid token payload" });
       }
       return done(null, jwtPayload);
     }

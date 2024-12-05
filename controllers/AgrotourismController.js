@@ -4,7 +4,7 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "images/");
+    cb(null, "public/images");
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
 }).fields([
   { name: "image", maxCount: 1 },
   { name: "gallery", maxCount: 10 },
@@ -35,14 +35,29 @@ const tambahAgrotourism = async (req, res) => {
       address,
       url_gmaps,
     } = req.body;
+
     const image = req.files.image ? req.files.image[0].path : null;
     const gallery = req.files.gallery
       ? req.files.gallery.map((file) => file.path)
       : [];
 
+    const imageUrl = image
+      ? `${req.protocol}://${req.get("host")}/images/${path.basename(image)}`
+      : null;
+
+    const galleryUrls =
+      gallery.length > 0
+        ? gallery.map(
+            (file) =>
+              `${req.protocol}://${req.get("host")}/images/${path.basename(
+                file
+              )}`
+          )
+        : [];
+
     try {
       await query(
-        "INSERT INTO agrotourism (name, city_id, activities_id, facility, image, gallery, description, price, address, url_gmaps, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+        "INSERT INTO agrotourism (name, city_id, activities_id, facility, image, gallery, description, price, address, url_gmaps, url_image, url_gallery, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
         [
           name,
           city_id,
@@ -54,8 +69,11 @@ const tambahAgrotourism = async (req, res) => {
           price,
           address,
           url_gmaps,
+          imageUrl,
+          JSON.stringify(galleryUrls),
         ]
       );
+
       return res.status(201).json({
         msg: "Agrotourism berhasil ditambahkan",
         data: {
@@ -68,6 +86,8 @@ const tambahAgrotourism = async (req, res) => {
           price,
           address,
           url_gmaps,
+          url_image: imageUrl,
+          url_gallery: galleryUrls,
         },
       });
     } catch (error) {
@@ -84,6 +104,24 @@ const ambilSemuaAgrotourism = async (req, res) => {
        FROM agrotourism 
        JOIN city ON agrotourism.city_id = city.id
        JOIN activities ON agrotourism.activities_id = activities.id`
+    );
+    return res.status(200).json({ msg: "Data berhasil diambil", data: result });
+  } catch (error) {
+    console.error("Gagal mengambil data agrotourism:", error);
+    return res.status(500).json({ msg: "Gagal mengambil data" });
+  }
+};
+
+const ambilAgrotourismByCity = async (req, res) => {
+  const { city_id } = req.params;
+  try {
+    const result = await query(
+      `SELECT agrotourism.*, city.name AS city_name, activities.name AS activity_name 
+       FROM agrotourism 
+       JOIN city ON agrotourism.city_id = city.id
+       JOIN activities ON agrotourism.activities_id = activities.id
+       WHERE agrotourism.city_id = ?`,
+      [city_id]
     );
     return res.status(200).json({ msg: "Data berhasil diambil", data: result });
   } catch (error) {
@@ -184,6 +222,7 @@ const hapusAgrotourism = async (req, res) => {
 
 module.exports = {
   tambahAgrotourism,
+  ambilAgrotourismByCity,
   ambilSemuaAgrotourism,
   ambilAgrotourismById,
   updateAgrotourism,
