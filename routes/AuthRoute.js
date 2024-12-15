@@ -1,8 +1,45 @@
 const express = require("express");
-const { registerUser, loginUser } = require("../controllers/AuthController");
-const router = express.Router();
+const passport = require("../middleware/PassportOauth");
+const {
+  registerUser,
+  loginUser,
+  loginWithGoogle,
+  getUserData,
+  logout,
+} = require("../controllers/AuthController");
+const AuthRoute = express.Router();
+const verifyToken = require("../middleware/verifytoken.js");
+AuthRoute.post("/registerrr", registerUser);
+AuthRoute.post("/login", loginUser);
+AuthRoute.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["email", "profile"],
+    prompt: "select_account",
+  })
+);
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+// Callback setelah login berhasil dengan Google OAuth
+AuthRoute.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  loginWithGoogle
+);
 
-module.exports = router;
+AuthRoute.post("/auth/logout", (req, res) => {
+  res.cookie("jwt", "", { httpOnly: true, expires: new Date(0), path: "/" });
+  res.status(200).json({ message: "Logout successful" });
+});
+
+AuthRoute.get("/userr", verifyToken, getUserData);
+
+AuthRoute.post("/logout", logout);
+
+AuthRoute.get("/verify-token", verifyToken, (req, res) => {
+  // Jika middleware berhasil, user sudah terautentikasi
+  res.status(200).json({
+    user: req.user, // mengirimkan data user dari token yang terdekripsi
+  });
+});
+
+module.exports = AuthRoute;

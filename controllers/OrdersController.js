@@ -35,7 +35,7 @@ const createOrder = async (req, res) => {
     const total_price = ticketPrice * quantity; // Kalkulasi total harga
 
     // Generate order ID
-    const order_id = `order-${Date.now()}`;
+    const order_id = `${Date.now()}`;
 
     // Insert into orders table
     await query(
@@ -163,4 +163,93 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, handlePaymentCallback, getOrderDetails };
+const getAllOrders = async (req, res) => {
+  try {
+    // Query untuk mengambil data yang diperlukan dengan join antara tabel orders, users, dan agrotourism
+    const sql = `
+      SELECT 
+        o.order_id, 
+        u.name AS user_name, 
+        o.selected_date, 
+        a.name AS agrotourism_name, 
+        o.quantity, 
+        o.total_price
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN agrotourism a ON o.agrotourism_id = a.id
+      ORDER BY o.created_at DESC
+      LIMIT 3
+    `;
+
+    // Menjalankan query untuk mendapatkan data
+    const orders = await query(sql);
+
+    // Mengirimkan data dalam response
+    return res.json(orders);
+  } catch (error) {
+    console.error("Error getting order details:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const getAll = async (req, res) => {
+  try {
+    // Query untuk mengambil data yang diperlukan dengan join antara tabel orders, users, dan agrotourism
+    const sql = `
+      SELECT 
+        o.order_id, 
+        u.name AS user_name, 
+         u.email, 
+        o.selected_date, 
+        a.name AS agrotourism_name, 
+        o.quantity, 
+        o.total_price, 
+        t.status
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN agrotourism a ON o.agrotourism_id = a.id
+      LEFT JOIN transactions t ON o.order_id = t.order_id
+      ORDER BY o.created_at DESC
+    `;
+
+    // Menjalankan query untuk mendapatkan data
+    const orders = await query(sql);
+
+    // Mengirimkan data dalam response
+    return res.json(orders);
+  } catch (error) {
+    console.error("Error getting order details:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const getTransactions = async (req, res) => {
+  try {
+    const sql = `
+      SELECT order_id, amount, status
+      FROM transactions
+      ORDER BY created_at DESC
+      LIMIT 3;
+    `;
+    const transactions = await query(sql);
+    res.status(200).json({ success: true, data: transactions });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch transactions" });
+  }
+};
+
+module.exports = {
+  createOrder,
+  handlePaymentCallback,
+  getOrderDetails,
+  getAllOrders,
+  getTransactions,
+  getAll,
+};

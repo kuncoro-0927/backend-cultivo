@@ -77,6 +77,41 @@ exports.handlePaymentCallback = async (req, res) => {
       return res.status(404).json({ error: "Transaction not found" });
     }
 
+    // Jika status transaksi berhasil, buat tiket
+    if (status === "success") {
+      const queryGetTransaction =
+        "SELECT * FROM transactions WHERE order_id = ?";
+      const transaction = await query(queryGetTransaction, [order_id]);
+
+      console.log("Transaction found:", transaction); // Log transaksi yang ditemukan
+
+      if (transaction.length > 0) {
+        const customerName = transaction[0].customer_name;
+        const orderId = transaction[0].order_id;
+
+        // Generate kode tiket
+        const ticketCode = generateTicketCode();
+        console.log("Generated ticket code:", ticketCode); // Log tiket yang dihasilkan
+
+        // Masukkan tiket ke dalam database
+        const queryInsertTicket = `
+          INSERT INTO tickets (order_id, ticket_code, status) 
+          VALUES (?, ?, ?)
+        `;
+        const ticketResult = await query(queryInsertTicket, [
+          orderId,
+          ticketCode,
+          "active",
+        ]);
+        console.log("Ticket insert result:", ticketResult); // Log hasil insert tiket
+
+        if (ticketResult.affectedRows > 0) {
+          console.log("Ticket created successfully!");
+        } else {
+          console.log("Failed to create ticket");
+        }
+      }
+    }
     // Respond with success if update is successful
     res
       .status(200)

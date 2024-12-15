@@ -1,5 +1,6 @@
 const midtransClient = require("midtrans-client");
 const { query } = require("../config/db");
+const crypto = require("crypto");
 // Inisialisasi Midtrans Snap
 let snap = new midtransClient.Snap({
   isProduction: false, // Gunakan `true` di environment produksi
@@ -86,7 +87,39 @@ exports.handlePaymentCallback = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ msg: "Order ID tidak ditemukan" });
     }
+    // Jika status transaksi berhasil (success), buat tiket
+    if (newStatus === "success") {
+      // Ambil data order berdasarkan order_id
+      const orderQuery = "SELECT * FROM orders WHERE order_id = ?";
+      const order = await query(orderQuery, [order_id]);
 
+      if (order.length === 0) {
+        return res.status(404).json({ msg: "Order tidak ditemukan" });
+      }
+
+      const generateTicketCode = () => {
+        const prefix = "CVO";
+        const randomNumber = Math.floor(Math.random() * 100000000); // 8 digit angka acak
+        return `${prefix}${randomNumber}`;
+      };
+      // Generate tiket unik menggunakan crypto
+      const ticketCode = generateTicketCode();
+
+      // Masukkan tiket ke dalam tabel tickets
+      const insertTicketQuery =
+        "INSERT INTO tickets (order_id, ticket_code, status) VALUES (?, ?, ?)";
+      const insertResult = await query(insertTicketQuery, [
+        order_id,
+        ticketCode,
+        "Active", // Status tiket aktif
+      ]);
+
+      if (insertResult.affectedRows > 0) {
+        console.log("Ticket created successfully for order_id:", order_id);
+      } else {
+        console.log("Failed to create ticket for order_id:", order_id);
+      }
+    }
     // Kirimkan response success ke Midtrans
     res.status(200).json({ msg: "Payment callback processed successfully" });
   } catch (error) {

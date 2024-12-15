@@ -208,15 +208,125 @@ const updateAgrotourism = async (req, res) => {
     }
   });
 };
-
 const hapusAgrotourism = async (req, res) => {
   const { id } = req.params;
   try {
+    // Hapus data terkait di tabel tickets
+    await query(
+      `DELETE FROM tickets WHERE order_id IN (
+         SELECT order_id FROM orders WHERE agrotourism_id = ?
+       )`,
+      [id]
+    );
+
+    // Hapus data terkait di tabel orders
+    await query("DELETE FROM orders WHERE agrotourism_id = ?", [id]);
+
+    // Hapus data di tabel agrotourism
     await query("DELETE FROM agrotourism WHERE id = ?", [id]);
+
     return res.status(200).json({ msg: "Data berhasil dihapus" });
   } catch (error) {
     console.error("Gagal menghapus data agrotourism:", error);
     return res.status(500).json({ msg: "Gagal menghapus data" });
+  }
+};
+
+const getTopAgrotourism = async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        agrotourism.id AS agrotourism_id,
+        agrotourism.name AS agrotourism_name,
+        city.name AS city_name,
+         agrotourism.url_image AS agrotourism_image,
+        COUNT(transactions.id) AS total_transactions,
+        SUM(transactions.amount) AS total_amount
+      FROM 
+        agrotourism
+      JOIN 
+        orders ON agrotourism.id = orders.agrotourism_id
+      JOIN 
+        transactions ON orders.order_id = transactions.order_id
+         JOIN 
+          city ON agrotourism.city_id = city.id
+      WHERE 
+        transactions.status = 'success' 
+      GROUP BY 
+        agrotourism.id
+      ORDER BY 
+        total_transactions DESC
+      LIMIT 3;
+    `;
+    const result = await query(sql);
+
+    console.log("Query Result:", result); // Debug log
+    res.json({
+      success: true,
+      data: result, // Kirim hasil query langsung
+    });
+  } catch (error) {
+    console.error("Error fetching top agrotourism:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch data" });
+  }
+};
+
+// const getAgrotourismByActivityId = async (req, res) => {
+//   const { activityId } = req.params; // ambil activityId dari URL parameter
+//   try {
+//     const [rows] = await query(
+//       "SELECT * FROM agrotourism WHERE activities_id = ?",
+//       [activityId]
+//     );
+//     if (rows.length === 0) {
+//       return res.status(404).json({ msg: "Data wisata tidak ditemukan" });
+//     }
+//     return res.status(200).json(rows); // Kirim data wisata yang ditemukan
+//   } catch (error) {
+//     console.error("Error mengambil data wisata:", error);
+//     return res.status(500).json({ msg: "Gagal mengambil data wisata" });
+//   }
+// };
+
+// controllers/AgrotourismController.js
+const getAgrotourismByActivityId1 = async (req, res) => {
+  try {
+    const [rows] = await query(
+      "SELECT * FROM agrotourism WHERE activities_id = ?",
+      [1]
+    );
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error("Gagal mengambil data agrotourism:", error);
+    return res.status(500).json({ msg: "Gagal mengambil data" });
+  }
+};
+
+// controllers/AgrotourismController.js
+const getAgrotourismByActivityId2 = async (req, res) => {
+  try {
+    const [rows] = await query(
+      "SELECT * FROM agrotourism WHERE activities_id = ?",
+      [2]
+    );
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error("Gagal mengambil data agrotourism:", error);
+    return res.status(500).json({ msg: "Gagal mengambil data" });
+  }
+};
+
+// controllers/AgrotourismController.js
+const getAgrotourismByActivityId3 = async (req, res) => {
+  try {
+    const [rows] = await query(
+      "SELECT * FROM agrotourism WHERE activities_id = ?",
+      [3]
+    );
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error("Gagal mengambil data agrotourism:", error);
+    return res.status(500).json({ msg: "Gagal mengambil data" });
   }
 };
 
@@ -225,6 +335,11 @@ module.exports = {
   ambilAgrotourismByCity,
   ambilSemuaAgrotourism,
   ambilAgrotourismById,
+
   updateAgrotourism,
   hapusAgrotourism,
+  getTopAgrotourism,
+  getAgrotourismByActivityId1,
+  getAgrotourismByActivityId2,
+  getAgrotourismByActivityId3,
 };
