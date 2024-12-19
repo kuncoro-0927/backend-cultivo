@@ -7,11 +7,12 @@ const {
   hapusAgrotourism,
   ambilAgrotourismByCity,
   getTopAgrotourism,
-
+  getTotalAgrotourism,
   getAgrotourismByActivityId1,
   getAgrotourismByActivityId2,
   getAgrotourismByActivityId3,
 } = require("../controllers/AgrotourismController.js");
+const verifyToken = require("../middleware/verifytoken.js");
 const authenticateUser = require("../middleware/Passport.js");
 const AgrotourismRoute = express.Router();
 
@@ -35,4 +36,5 @@ AgrotourismRoute.get(
   "/agrotourism/activity/perikanan",
   getAgrotourismByActivityId3
 );
+AgrotourismRoute.get("/total/agrotourism", verifyToken, getTotalAgrotourism);
 module.exports = AgrotourismRoute;

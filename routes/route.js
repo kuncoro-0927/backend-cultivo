@@ -11,6 +11,7 @@ const TicketRoute = require("./TicketRoute.js");
 const EmailRoute = require("./EmailVerifyRoute.js");
 const SalesRoute = require("./SalesRoute.js");
 const WishlistRoute = require("./WishlistsRoute.js");
+const ReviewRoute = require("./ReviewsRoute.js");
 const router = express();
 const authenticateUser = require("../middleware/Passport.js");
 
@@ -28,4 +29,5 @@ router.use(api, TicketRoute);
 router.use(api, EmailRoute);
 router.use(api, SalesRoute);
 router.use(api, WishlistRoute);
+router.use(api, ReviewRoute);
 module.exports = router;

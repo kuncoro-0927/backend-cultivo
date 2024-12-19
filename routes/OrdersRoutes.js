@@ -7,6 +7,7 @@ const {
   getAllOrders,
   getTransactions,
   getAll,
+  getTotalAmountSuccess,
 } = require("../controllers/OrdersController");
 const OrdersRoute = express.Router();
 //const authenticateUser = require("../middleware/Passport.js");
@@ -17,4 +18,5 @@ OrdersRoute.get("/order/detail/:hashedToken", getOrderDetails);
 OrdersRoute.get("/last/orders", getAllOrders);
 OrdersRoute.get("/all/orders", getAll);
 OrdersRoute.get("/all/transactions", getTransactions);
+OrdersRoute.get("/total/amount", getTotalAmountSuccess);
 module.exports = OrdersRoute;

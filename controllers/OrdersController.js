@@ -1,6 +1,8 @@
 const { query } = require("../config/db");
 const midtransClient = require("midtrans-client");
 const crypto = require("crypto");
+const { parseISO } = require("date-fns");
+const { zonedTimeToUtc } = require("date-fns-tz");
 const snap = new midtransClient.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
@@ -33,6 +35,16 @@ const createOrder = async (req, res) => {
 
     const ticketPrice = agroData.price;
     const total_price = ticketPrice * quantity; // Kalkulasi total harga
+    const { parseISO, format } = require("date-fns");
+
+    // Mengonversi tanggal ke zona waktu Jakarta, lalu ke UTC
+    const selectedDate = parseISO(req.body.selected_date);
+    const jakartaTime = format(selectedDate, "yyyy-MM-dd HH:mm:ssXXX", {
+      timeZone: "Asia/Jakarta",
+    });
+    const utcTime = format(parseISO(jakartaTime), "yyyy-MM-dd HH:mm:ssXXX", {
+      timeZone: "UTC",
+    });
 
     // Generate order ID
     const order_id = `${Date.now()}`;
@@ -45,7 +57,7 @@ const createOrder = async (req, res) => {
         order_id,
         id,
         agrotourism_id,
-        selected_date,
+        jakartaTime,
         quantity,
         total_price,
         hashedToken,
@@ -78,6 +90,7 @@ const createOrder = async (req, res) => {
       hashedToken: hashedToken,
       token: transaction.token,
       order_id: order_id,
+      price: ticketPrice,
       total_price: total_price,
       // Kirim total harga ke frontend
     });
@@ -245,6 +258,38 @@ const getTransactions = async (req, res) => {
   }
 };
 
+// Fungsi untuk menghitung total amount dengan status 'success'
+const getTotalAmountSuccess = async (req, res) => {
+  try {
+    console.log("Starting query for total amount...");
+
+    const totalAmountQuery = `
+      SELECT SUM(amount) AS total_amount
+      FROM transactions
+      WHERE status = 'success';
+    `;
+    console.log("Executing query:", totalAmountQuery);
+
+    const [result] = await query(totalAmountQuery);
+
+    console.log("Query result:", result); // Log the full result to understand its structure
+
+    // Mengakses total_amount dengan cara yang tepat
+    const totalAmount = result.total_amount
+      ? parseFloat(result.total_amount)
+      : 0;
+
+    console.log("Calculated total amount:", totalAmount);
+
+    return res.json({ totalAmount });
+  } catch (error) {
+    console.error("Error getting total amount:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
 module.exports = {
   createOrder,
   handlePaymentCallback,
@@ -252,4 +297,5 @@ module.exports = {
   getAllOrders,
   getTransactions,
   getAll,
+  getTotalAmountSuccess,
 };

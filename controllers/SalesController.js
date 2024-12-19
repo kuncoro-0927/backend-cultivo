@@ -20,7 +20,8 @@ const getTotalSales = async (req, res) => {
           SUM(CASE WHEN transactions.status = 'failed' THEN 1 ELSE 0 END) AS total_failed
         FROM orders
         JOIN transactions ON orders.order_id = transactions.order_id
-        WHERE orders.created_at BETWEEN CONVERT_TZ(?, '+00:00', '+07:00') AND CONVERT_TZ(?, '+00:00', '+07:00');
+      WHERE DATE(CONVERT_TZ(orders.created_at, '+00:00', '+07:00')) BETWEEN ? AND ?
+
       `;
 
     // Jalankan query dengan parameter startDate dan endDate

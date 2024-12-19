@@ -1,5 +1,5 @@
 const { query } = require("../config/db");
-
+const path = require("path");
 exports.verifyTicket = async (req, res) => {
   const { ticket_code } = req.body;
 
@@ -122,9 +122,21 @@ exports.useTicket = async (req, res) => {
 };
 
 exports.getUserTickets = async (req, res) => {
-  const { id: user_id } = req.user; // Ambil user_id dari token JWT
+  const { id: user_id } = req.user;
+
   try {
-    // Ambil semua tiket berdasarkan user_id
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    // Update tiket yang sudah expired
+    const updateQuery = `
+      UPDATE tickets t
+      JOIN orders o ON t.order_id = o.order_id
+      SET t.status = 'Expired'
+      WHERE o.selected_date < ? AND t.status NOT IN ('Used', 'Expired')
+    `;
+    await query(updateQuery, [currentDate]);
+
+    // Ambil semua tiket pengguna
     const tickets = await query(
       `
         SELECT 
@@ -134,12 +146,14 @@ exports.getUserTickets = async (req, res) => {
           o.agrotourism_id, 
           o.selected_date, 
           a.name AS agrotourism_name, 
-          a.address AS agrotourism_address,
-           a.url_image AS agrotourism_url_image,  
-          o.quantity
+          a.address AS agrotourism_address, 
+          a.url_image AS agrotourism_url_image,
+          o.quantity,
+          u.name
         FROM tickets t
         JOIN orders o ON t.order_id = o.order_id
         JOIN agrotourism a ON o.agrotourism_id = a.id
+        JOIN users u ON o.user_id = u.id
         WHERE o.user_id = ?`,
       [user_id]
     );
@@ -152,5 +166,82 @@ exports.getUserTickets = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch tickets" });
+  }
+};
+
+exports.getDataTiket = async (req, res) => {
+  try {
+    const sql = `
+   SELECT 
+    t.id AS ticket_id,
+    t.ticket_code,
+     t.status,
+    t.order_id,  -- order_id dari tabel tickets
+    o.selected_date,
+    o.quantity,
+    o.total_price,
+    a.id AS agrotourism_id,
+    a.name AS agrotourism_name,  -- Nama agrotourism dari tabel agrotourism
+    u.id AS user_id,
+    u.name AS user_name  -- Nama user dari tabel users
+FROM 
+    tickets t
+JOIN 
+    orders o ON t.order_id = o.order_id  -- Menggunakan order_id untuk join
+JOIN 
+    agrotourism a ON o.agrotourism_id = a.id  -- Join dengan tabel agrotourism
+JOIN 
+    users u ON o.user_id = u.id;  -- Join dengan tabel users
+
+  `;
+
+    const tickets = await query(sql); // Menggunakan fungsi query yang dibuat
+
+    // Mengirimkan data dalam response
+    return res.json(tickets);
+  } catch (error) {
+    console.error("Error getting order details:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Fungsi untuk menghitung total tiket dan tiket dengan status 'active'
+exports.getTicketStats = async (req, res) => {
+  try {
+    // Query untuk menghitung total tiket
+    const totalTicketsQuery = `
+      SELECT COUNT(*) AS total_tickets
+      FROM tickets;
+    `;
+
+    // Query untuk menghitung total tiket dengan status 'active'
+    const totalActiveTicketsQuery = `
+      SELECT COUNT(*) AS total_active_tickets
+      FROM tickets
+      WHERE status = 'active';
+    `;
+
+    // Menjalankan kedua query secara bersamaan menggunakan Promise.all
+    const [totalTicketsResult, totalActiveTicketsResult] = await Promise.all([
+      query(totalTicketsQuery),
+      query(totalActiveTicketsQuery),
+    ]);
+
+    // Mendapatkan hasil dari query pertama dan kedua
+    const totalTickets = totalTicketsResult[0].total_tickets;
+    const totalActiveTickets = totalActiveTicketsResult[0].total_active_tickets;
+
+    // Mengirimkan hasil statistik dalam response
+    return res.json({
+      totalTickets,
+      totalActiveTickets,
+    });
+  } catch (error) {
+    console.error("Error getting ticket stats:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };

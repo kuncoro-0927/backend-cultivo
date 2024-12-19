@@ -30,6 +30,8 @@ const tambahAgrotourism = async (req, res) => {
       city_id,
       activities_id,
       facility,
+      include,
+      exclude,
       description,
       price,
       address,
@@ -57,12 +59,14 @@ const tambahAgrotourism = async (req, res) => {
 
     try {
       await query(
-        "INSERT INTO agrotourism (name, city_id, activities_id, facility, image, gallery, description, price, address, url_gmaps, url_image, url_gallery, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+        "INSERT INTO agrotourism (name, city_id, activities_id, facility, include, exclude, image, gallery, description, price, address, url_gmaps, url_image, url_gallery, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
         [
           name,
           city_id,
           activities_id,
           facility,
+          include,
+          exclude,
           image,
           JSON.stringify(gallery),
           description,
@@ -160,6 +164,8 @@ const updateAgrotourism = async (req, res) => {
       city_id,
       activities_id,
       facility,
+      include,
+      exclude,
       description,
       price,
       address,
@@ -184,13 +190,15 @@ const updateAgrotourism = async (req, res) => {
 
       await query(
         `UPDATE agrotourism 
-           SET name = ?, city_id = ?, activities_id = ?, facility = ?, image = ?, gallery = ?, description = ?, price = ?, address = ?, url_gmaps = ?, updated_at = NOW() 
+           SET name = ?, city_id = ?, activities_id = ?, facility = ?, include = ?, exclude = ?,  image = ?, gallery = ?, description = ?, price = ?, address = ?, url_gmaps = ?, updated_at = NOW() 
            WHERE id = ?`,
         [
           name,
           city_id,
           activities_id,
           facility,
+          include,
+          exclude,
           updatedImage,
           updatedGallery,
           description,
@@ -330,12 +338,39 @@ const getAgrotourismByActivityId3 = async (req, res) => {
   }
 };
 
+async function getTotalAgrotourism(req, res) {
+  try {
+    // Query untuk menghitung jumlah total agrotourism
+    const agrotourismResult = await query(
+      "SELECT COUNT(*) AS total_agrotourism FROM agrotourism"
+    );
+
+    // Query untuk menghitung jumlah total activity
+    const activityResult = await query(
+      "SELECT COUNT(*) AS total_activity FROM activities"
+    );
+
+    // Query untuk menghitung jumlah total city
+    const cityResult = await query("SELECT COUNT(*) AS total_city FROM city");
+
+    // Mengirimkan hasil jumlah agrotourism, activity, dan city dalam satu response
+    res.json({
+      total_agrotourism: agrotourismResult[0].total_agrotourism,
+      total_activity: activityResult[0].total_activity,
+      total_city: cityResult[0].total_city,
+    });
+  } catch (error) {
+    console.error("Error fetching total counts:", error);
+    res.status(500).json({ message: "Error fetching total counts" });
+  }
+}
+
 module.exports = {
   tambahAgrotourism,
   ambilAgrotourismByCity,
   ambilSemuaAgrotourism,
   ambilAgrotourismById,
-
+  getTotalAgrotourism,
   updateAgrotourism,
   hapusAgrotourism,
   getTopAgrotourism,
