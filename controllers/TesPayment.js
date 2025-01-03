@@ -1,14 +1,13 @@
 const midtransClient = require("midtrans-client");
 const { query } = require("../config/db");
 const crypto = require("crypto");
-// Inisialisasi Midtrans Snap
+
 let snap = new midtransClient.Snap({
-  isProduction: false, // Gunakan `true` di environment produksi
-  serverKey: process.env.MIDTRANS_SERVER_KEY, // Kunci server Midtrans
-  clientKey: process.env.MIDTRANS_CLIENT_KEY, // Kunci klien Midtrans
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-// Fungsi untuk melanjutkan pembayaran
 exports.processPayment = async (req, res) => {
   const { order_id, total_price, email } = req.body;
 
@@ -35,10 +34,10 @@ exports.verifyPayment = async (req, res) => {
   const { order_id } = req.params;
 
   try {
-    const transactionStatus = await snap.transaction.status(order_id); // Meminta status transaksi
+    const transactionStatus = await snap.transaction.status(order_id);
     return res.json({
       message: "Payment verification successful",
-      status: transactionStatus, // Menampilkan status transaksi
+      status: transactionStatus,
     });
   } catch (error) {
     console.error("Error verifying payment:", error);
@@ -50,14 +49,12 @@ exports.handlePaymentCallback = async (req, res) => {
   const { order_id, transaction_status, fraud_status } = req.body;
 
   try {
-    // Cek apakah order_id ada di request body
     if (!order_id || !transaction_status) {
       return res
         .status(400)
         .json({ msg: "Order ID atau status transaksi tidak ditemukan" });
     }
 
-    // Cek status transaksi dan update statusnya di database
     const status = transaction_status.toLowerCase();
     let newStatus = "";
 
@@ -75,7 +72,6 @@ exports.handlePaymentCallback = async (req, res) => {
       newStatus = "failed";
     }
 
-    // Update status transaksi di database
     const updateTransactionQuery = `
       UPDATE transactions
       SET status = ?
@@ -87,9 +83,8 @@ exports.handlePaymentCallback = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ msg: "Order ID tidak ditemukan" });
     }
-    // Jika status transaksi berhasil (success), buat tiket
+
     if (newStatus === "success") {
-      // Ambil data order berdasarkan order_id
       const orderQuery = "SELECT * FROM orders WHERE order_id = ?";
       const order = await query(orderQuery, [order_id]);
 
@@ -99,19 +94,18 @@ exports.handlePaymentCallback = async (req, res) => {
 
       const generateTicketCode = () => {
         const prefix = "CVO";
-        const randomNumber = Math.floor(Math.random() * 100000000); // 8 digit angka acak
+        const randomNumber = Math.floor(Math.random() * 100000000);
         return `${prefix}${randomNumber}`;
       };
-      // Generate tiket unik menggunakan crypto
+
       const ticketCode = generateTicketCode();
 
-      // Masukkan tiket ke dalam tabel tickets
       const insertTicketQuery =
         "INSERT INTO tickets (order_id, ticket_code, status) VALUES (?, ?, ?)";
       const insertResult = await query(insertTicketQuery, [
         order_id,
         ticketCode,
-        "Active", // Status tiket aktif
+        "Active",
       ]);
 
       if (insertResult.affectedRows > 0) {
@@ -120,7 +114,7 @@ exports.handlePaymentCallback = async (req, res) => {
         console.log("Failed to create ticket for order_id:", order_id);
       }
     }
-    // Kirimkan response success ke Midtrans
+
     res.status(200).json({ msg: "Payment callback processed successfully" });
   } catch (error) {
     console.error("Error processing payment callback:", error);

@@ -25,11 +25,10 @@ exports.checkTicket = async (req, res) => {
   }
 };
 exports.CreateReview = async (req, res) => {
-  const { id: user_id } = req.user; // Ambil user_id dari session atau token JWT
-  const { ticket_id, review_text, rating } = req.body; // Ambil data review dari body request
+  const { id: user_id } = req.user;
+  const { ticket_id, review_text, rating } = req.body;
 
   try {
-    // Cek apakah tiket tersebut milik user
     const ticketQuery = `
         SELECT * 
         FROM tickets t
@@ -45,7 +44,6 @@ exports.CreateReview = async (req, res) => {
         .json({ error: "Ticket not found or not owned by user" });
     }
 
-    // Masukkan review ke database
     const reviewQuery = `
         INSERT INTO reviews (ticket_id, user_id, review_text, rating)
         VALUES (?, ?, ?, ?);

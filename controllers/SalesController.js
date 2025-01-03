@@ -1,6 +1,6 @@
-const { query } = require("../config/db"); // Pastikan untuk mengimpor fungsi query
+const { query } = require("../config/db");
 const getTotalSales = async (req, res) => {
-  const { startDate, endDate } = req.query; // Mengambil parameter startDate dan endDate dari query
+  const { startDate, endDate } = req.query;
 
   if (!startDate || !endDate) {
     return res.status(400).json({
@@ -10,7 +10,6 @@ const getTotalSales = async (req, res) => {
   }
 
   try {
-    // Query untuk menghitung total order, total penjualan, dan status transaksi
     const sql = `
         SELECT 
           COUNT(DISTINCT orders.order_id) AS total_orders,
@@ -24,7 +23,6 @@ const getTotalSales = async (req, res) => {
 
       `;
 
-    // Jalankan query dengan parameter startDate dan endDate
     const [result] = await query(sql, [startDate, endDate]);
 
     if (result) {
@@ -53,10 +51,8 @@ const getTotalSales = async (req, res) => {
 };
 const getTodaySalesData = async (req, res) => {
   try {
-    // Menentukan tanggal hari ini
-    const today = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
 
-    // SQL Query untuk menghitung total pemasukan dan total order hari ini
     const sql = `
        SELECT COUNT(DISTINCT orders.order_id) AS total_orders,
        SUM(CASE WHEN transactions.status = 'success' THEN transactions.amount ELSE 0 END) AS total_sales,
@@ -67,7 +63,6 @@ WHERE transactions.status = 'success'
 AND DATE(orders.created_at) = CURDATE();
       `;
 
-    // Jalankan query dengan tanggal hari ini
     const [result] = await query(sql, [today]);
 
     if (result) {

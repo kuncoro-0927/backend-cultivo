@@ -8,7 +8,6 @@ exports.verifyTicket = async (req, res) => {
   }
 
   try {
-    // Query untuk mencari tiket dan join dengan tabel orders, users, dan agrotourism
     const queryStr = `
         SELECT 
           t.ticket_code, t.status AS ticket_status, 
@@ -30,19 +29,17 @@ exports.verifyTicket = async (req, res) => {
 
     const ticket = result[0];
 
-    // Memeriksa status tiket
     if (ticket.ticket_status === "used") {
       return res.status(400).json({ error: "Ticket has already been used" });
     }
 
-    // Jika tiket valid dan belum digunakan, kirimkan detail tiket beserta data terkait
     res.status(200).json({
       message: "Ticket is valid",
       ticket_code: ticket.ticket_code,
       ticket_status: ticket.ticket_status,
-      user_name: ticket.user_name || "No user found", // Memastikan jika data user tidak ada
+      user_name: ticket.user_name || "No user found",
       quantity: ticket.quantity,
-      agrotourism_name: ticket.agrotourism_name || "No agrotourism found", // Memastikan jika data agrotourism tidak ada
+      agrotourism_name: ticket.agrotourism_name || "No agrotourism found",
     });
   } catch (error) {
     console.error("Error verifying ticket:", error);
@@ -50,42 +47,6 @@ exports.verifyTicket = async (req, res) => {
   }
 };
 
-// exports.useTicket = async (req, res) => {
-//   const { ticket_code } = req.body;
-
-//   if (!ticket_code) {
-//     return res.status(400).json({ error: "Ticket code is required" });
-//   }
-
-//   try {
-//     // Periksa apakah tiket valid
-//     const [ticket] = await query(
-//       "SELECT * FROM tickets WHERE ticket_code = ?",
-//       [ticket_code]
-//     );
-
-//     if (!ticket) {
-//       return res.status(404).json({ error: "Ticket not found" });
-//     }
-
-//     if (ticket.status === "used") {
-//       return res.status(400).json({ error: "Ticket has already been used" });
-//     }
-
-//     // Perbarui status tiket menjadi 'used'
-//     const updateQuery =
-//       "UPDATE tickets SET status = 'used' WHERE ticket_code = ?";
-//     await query(updateQuery, [ticket_code]);
-
-//     res.status(200).json({ message: "Ticket successfully used" });
-//   } catch (error) {
-//     console.error("Error updating ticket status:", error);
-//     res.status(500).json({ error: "Failed to update ticket status" });
-//   }
-// };
-
-// Fungsi untuk memperbarui status tiket menjadi 'used'
-// Controller untuk mengubah status tiket menjadi "used"
 exports.useTicket = async (req, res) => {
   const { ticketCode } = req.body;
 
@@ -94,7 +55,6 @@ exports.useTicket = async (req, res) => {
   }
 
   try {
-    // Periksa apakah tiket dengan ticket_code ada dan dalam status 'active'
     const [ticket] = await query(
       "SELECT * FROM tickets WHERE ticket_code = ?",
       [ticketCode]
@@ -110,7 +70,6 @@ exports.useTicket = async (req, res) => {
         .json({ error: "Ticket is not active or already used" });
     }
 
-    // Update status tiket menjadi 'used'
     const updateQuery = "UPDATE tickets SET status = ? WHERE ticket_code = ?";
     await query(updateQuery, ["Used", ticketCode]);
 
@@ -127,7 +86,6 @@ exports.getUserTickets = async (req, res) => {
   try {
     const currentDate = new Date().toISOString().split("T")[0];
 
-    // Update tiket yang sudah expired
     const updateQuery = `
       UPDATE tickets t
       JOIN orders o ON t.order_id = o.order_id
@@ -136,7 +94,6 @@ exports.getUserTickets = async (req, res) => {
     `;
     await query(updateQuery, [currentDate]);
 
-    // Ambil semua tiket pengguna
     const tickets = await query(
       `
         SELECT 
@@ -195,9 +152,8 @@ JOIN
 
   `;
 
-    const tickets = await query(sql); // Menggunakan fungsi query yang dibuat
+    const tickets = await query(sql);
 
-    // Mengirimkan data dalam response
     return res.json(tickets);
   } catch (error) {
     console.error("Error getting order details:", error);
@@ -207,33 +163,27 @@ JOIN
   }
 };
 
-// Fungsi untuk menghitung total tiket dan tiket dengan status 'active'
 exports.getTicketStats = async (req, res) => {
   try {
-    // Query untuk menghitung total tiket
     const totalTicketsQuery = `
       SELECT COUNT(*) AS total_tickets
       FROM tickets;
     `;
 
-    // Query untuk menghitung total tiket dengan status 'active'
     const totalActiveTicketsQuery = `
       SELECT COUNT(*) AS total_active_tickets
       FROM tickets
       WHERE status = 'active';
     `;
 
-    // Menjalankan kedua query secara bersamaan menggunakan Promise.all
     const [totalTicketsResult, totalActiveTicketsResult] = await Promise.all([
       query(totalTicketsQuery),
       query(totalActiveTicketsQuery),
     ]);
 
-    // Mendapatkan hasil dari query pertama dan kedua
     const totalTickets = totalTicketsResult[0].total_tickets;
     const totalActiveTickets = totalActiveTicketsResult[0].total_active_tickets;
 
-    // Mengirimkan hasil statistik dalam response
     return res.json({
       totalTickets,
       totalActiveTickets,

@@ -5,7 +5,6 @@ const {
   getReviewall,
 } = require("../controllers/ReviewsController.js");
 
-//const authenticateUser = require("../middleware/Passport.js");
 const verifyToken = require("../middleware/verifytoken.js");
 const ReviewRoute = express.Router();
 

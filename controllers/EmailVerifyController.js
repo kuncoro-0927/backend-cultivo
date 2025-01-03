@@ -3,16 +3,13 @@ const jwt = require("jsonwebtoken");
 const { query } = require("../config/db");
 const { sendOTPEmail } = require("../services/emailService");
 
-// Fungsi untuk menghasilkan OTP
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// Registrasi pengguna
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // Cek apakah email sudah digunakan
     const userExists = await query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
@@ -21,25 +18,20 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Simpan user ke database
     await query("INSERT INTO users (name, email, password) VALUES (?, ?,?)", [
       name,
       email,
       hashedPassword,
     ]);
 
-    // Generate OTP
     const otp = generateOTP();
 
-    // Token OTP dengan JWT
     const token = jwt.sign({ email, otp }, process.env.JWT_SECRET, {
       expiresIn: "5m",
     });
 
-    // Kirim OTP via email
     await sendOTPEmail(email, otp);
 
     res
@@ -53,19 +45,16 @@ exports.register = async (req, res) => {
   }
 };
 
-// Verifikasi OTP
 exports.verifyOTP = async (req, res) => {
   const { otp, token } = req.body;
 
   try {
-    // Verifikasi token OTP
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (decoded.otp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // Update user menjadi terverifikasi
     await query("UPDATE users SET isVerified = true WHERE email = ?", [
       decoded.email,
     ]);
@@ -87,13 +76,13 @@ exports.resendOtp = async (req, res) => {
   }
 
   try {
-    const otp = generateOTP(); // Buat fungsi untuk menghasilkan OTP
-    // Simpan OTP ke database dengan email terkait
+    const otp = generateOTP();
+
     const token = jwt.sign({ email, otp }, process.env.JWT_SECRET, {
       expiresIn: "5m",
     });
 
-    await sendOTPEmail(email, otp); // Kirim email dengan fungsi Anda
+    await sendOTPEmail(email, otp);
 
     res.status(200).json({ message: "OTP resent successfully", token });
   } catch (error) {

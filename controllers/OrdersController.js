@@ -9,7 +9,7 @@ const snap = new midtransClient.Snap({
 });
 
 const createOrder = async (req, res) => {
-  const { id } = req.user; // Ambil user_id dari payload JWT
+  const { id } = req.user;
 
   if (!id) {
     return res.status(400).json({ error: "User not authenticated" });
@@ -22,7 +22,6 @@ const createOrder = async (req, res) => {
   }
 
   try {
-    // Ambil harga tiket dari database
     const hashedToken = crypto.randomUUID();
     const [agroData] = await query(
       "SELECT price FROM agrotourism WHERE id = ?",
@@ -34,10 +33,9 @@ const createOrder = async (req, res) => {
     }
 
     const ticketPrice = agroData.price;
-    const total_price = ticketPrice * quantity; // Kalkulasi total harga
+    const total_price = ticketPrice * quantity;
     const { parseISO, format } = require("date-fns");
 
-    // Mengonversi tanggal ke zona waktu Jakarta, lalu ke UTC
     const selectedDate = parseISO(req.body.selected_date);
     const jakartaTime = format(selectedDate, "yyyy-MM-dd HH:mm:ssXXX", {
       timeZone: "Asia/Jakarta",
@@ -46,10 +44,8 @@ const createOrder = async (req, res) => {
       timeZone: "UTC",
     });
 
-    // Generate order ID
     const order_id = `${Date.now()}`;
 
-    // Insert into orders table
     await query(
       `INSERT INTO orders (order_id, user_id, agrotourism_id, selected_date, quantity, total_price, token)
          VALUES (?, ?, ?, ?, ?, ?,?)`,
@@ -64,22 +60,20 @@ const createOrder = async (req, res) => {
       ]
     );
 
-    // Insert into transactions table
     await query(
       `INSERT INTO transactions (order_id, amount, status) VALUES (?, ?, ?)`,
       [order_id, total_price, "pending"]
     );
 
-    // Midtrans transaction processing
     const parameter = {
       transaction_details: {
         order_id: order_id,
         gross_amount: total_price,
       },
       customer_details: {
-        first_name: "Customer Name", // Ganti sesuai data user
-        email: "customer@example.com", // Ganti sesuai data user
-        phone: "08123456789", // Ganti sesuai data user
+        first_name: "Customer Name",
+        email: "customer@example.com",
+        phone: "08123456789",
       },
     };
 
@@ -92,7 +86,6 @@ const createOrder = async (req, res) => {
       order_id: order_id,
       price: ticketPrice,
       total_price: total_price,
-      // Kirim total harga ke frontend
     });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -107,7 +100,6 @@ const handlePaymentCallback = async (req, res) => {
     return res.status(400).json({ error: "Invalid data received" });
   }
 
-  // Validasi signature key
   const expectedKey = crypto
     .createHash("sha512")
     .update(`${order_id}${status_code}${process.env.MIDTRANS_SERVER_KEY}`)
@@ -147,7 +139,6 @@ const getOrderDetails = async (req, res) => {
   const { hashedToken } = req.params;
 
   try {
-    // Query untuk mendapatkan detail order berdasarkan token
     const orderQuery = `
       SELECT orders.order_id, orders.quantity, orders.total_price, orders.selected_date, agrotourism.name AS wisata_name, agrotourism.price AS wisata_price,transactions.status AS payment_status
 
@@ -159,12 +150,10 @@ const getOrderDetails = async (req, res) => {
 
     const order = await query(orderQuery, [hashedToken]);
 
-    // Jika order tidak ditemukan
     if (order.length === 0) {
       return res.status(404).json({ msg: "Order tidak ditemukan" });
     }
 
-    // Jika order ditemukan, kirimkan detailnya
     return res
       .status(200)
       .json({ msg: "Detail order berhasil ditemukan", data: order[0] });
@@ -178,7 +167,6 @@ const getOrderDetails = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
-    // Query untuk mengambil data yang diperlukan dengan join antara tabel orders, users, dan agrotourism
     const sql = `
       SELECT 
         o.order_id, 
@@ -194,10 +182,8 @@ const getAllOrders = async (req, res) => {
       LIMIT 3
     `;
 
-    // Menjalankan query untuk mendapatkan data
     const orders = await query(sql);
 
-    // Mengirimkan data dalam response
     return res.json(orders);
   } catch (error) {
     console.error("Error getting order details:", error);

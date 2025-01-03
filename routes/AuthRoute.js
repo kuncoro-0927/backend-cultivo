@@ -36,9 +36,8 @@ AuthRoute.get("/userr", verifyToken, getUserData);
 AuthRoute.post("/logout", logout);
 
 AuthRoute.get("/verify-token", verifyToken, (req, res) => {
-  // Jika middleware berhasil, user sudah terautentikasi
   res.status(200).json({
-    user: req.user, // mengirimkan data user dari token yang terdekripsi
+    user: req.user,
   });
 });
 
