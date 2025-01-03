@@ -1,123 +1,125 @@
 const midtransClient = require("midtrans-client");
 const { query } = require("../config/db");
+const crypto = require("crypto");
 
-// Inisialisasi Midtrans client
-const snap = new midtransClient.Snap({
+let snap = new midtransClient.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-exports.createTransaction = async (req, res) => {
-  const { orderId, amount, customerName, email, phone } = req.body;
-
-  // Validasi input
-  if (!orderId || !amount || !customerName || !email || !phone) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
+exports.processPayment = async (req, res) => {
+  const { order_id, total_price, email } = req.body;
 
   try {
-    // Insert transaction to database
-    const queryInsert =
-      "INSERT INTO transactions (order_id, amount, customer_name, customer_email, customer_phone, status) VALUES (?, ?, ?, ?, ?, ?)";
-    await query(queryInsert, [
-      orderId,
-      amount,
-      customerName,
-      email,
-      phone,
-      "pending",
-    ]);
-
-    // Prepare Midtrans transaction parameter
-    const parameter = {
+    const paymentParams = {
       transaction_details: {
-        order_id: orderId,
-        gross_amount: amount,
+        order_id,
+        gross_amount: total_price,
       },
       customer_details: {
-        first_name: customerName,
-        email,
-        phone,
+        email: email,
       },
     };
 
-    // Create transaction token
-    const transaction = await snap.createTransaction(parameter);
-    return res.json({ token: transaction.token });
+    const transaction = await snap.createTransaction(paymentParams);
+    res.status(200).json({ snapToken: transaction.token });
   } catch (error) {
-    console.error("Error in creating transaction:", error);
-    return res.status(500).json({ error: "Failed to create transaction" });
+    console.error(error);
+    res.status(500).json({ msg: "Gagal memproses pembayaran." });
   }
 };
-exports.handlePaymentCallback = async (req, res) => {
-  const { transaction_status, order_id, status_code } = req.body;
 
-  if (!order_id || !transaction_status || !status_code) {
-    return res.status(400).json({ error: "Invalid data received" });
-  }
-
-  let status;
-  if (transaction_status === "capture" || transaction_status === "settlement") {
-    status = "success";
-  } else if (transaction_status === "pending") {
-    status = "pending";
-  } else if (
-    transaction_status === "deny" ||
-    transaction_status === "expire" ||
-    transaction_status === "cancel"
-  ) {
-    status = "failed";
-  }
+exports.verifyPayment = async (req, res) => {
+  const { order_id } = req.params;
 
   try {
-    const queryStr = "UPDATE transactions SET status = ? WHERE order_id = ?";
-    const result = await query(queryStr, [status, order_id]);
+    const transactionStatus = await snap.transaction.status(order_id);
+    return res.json({
+      message: "Payment verification successful",
+      status: transactionStatus,
+    });
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    return res.status(500).json({ error: "Failed to verify payment" });
+  }
+};
+
+exports.handlePaymentCallback = async (req, res) => {
+  const { order_id, transaction_status, fraud_status } = req.body;
+
+  try {
+    if (!order_id || !transaction_status) {
+      return res
+        .status(400)
+        .json({ msg: "Order ID atau status transaksi tidak ditemukan" });
+    }
+
+    const status = transaction_status.toLowerCase();
+    let newStatus = "";
+
+    if (status === "capture" && fraud_status === "accept") {
+      newStatus = "success";
+    } else if (status === "settlement") {
+      newStatus = "success";
+    } else if (status === "pending") {
+      newStatus = "pending";
+    } else if (
+      status === "deny" ||
+      status === "expire" ||
+      status === "cancel"
+    ) {
+      newStatus = "failed";
+    }
+
+    const updateTransactionQuery = `
+      UPDATE transactions
+      SET status = ?
+      WHERE order_id = ?
+    `;
+
+    const result = await query(updateTransactionQuery, [newStatus, order_id]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Transaction not found" });
+      return res.status(404).json({ msg: "Order ID tidak ditemukan" });
     }
 
-    // Jika status transaksi berhasil, buat tiket
-    if (status === "success") {
-      const queryGetTransaction =
-        "SELECT * FROM transactions WHERE order_id = ?";
-      const transaction = await query(queryGetTransaction, [order_id]);
+    if (newStatus === "success") {
+      const orderQuery = "SELECT * FROM orders WHERE order_id = ?";
+      const order = await query(orderQuery, [order_id]);
 
-      console.log("Transaction found:", transaction); // Log transaksi yang ditemukan
+      if (order.length === 0) {
+        return res.status(404).json({ msg: "Order tidak ditemukan" });
+      }
 
-      if (transaction.length > 0) {
-        const customerName = transaction[0].customer_name;
-        const orderId = transaction[0].order_id;
+      const generateTicketCode = () => {
+        const prefix = "CVO";
+        const randomNumber = Math.floor(Math.random() * 100000000);
+        return `${prefix}${randomNumber}`;
+      };
 
-        // Generate kode tiket
-        const ticketCode = generateTicketCode();
-        console.log("Generated ticket code:", ticketCode); // Log tiket yang dihasilkan
+      const ticketCode = generateTicketCode();
 
-        // Masukkan tiket ke dalam database
-        const queryInsertTicket = `
-          INSERT INTO tickets (order_id, ticket_code, status) 
-          VALUES (?, ?, ?)
-        `;
-        const ticketResult = await query(queryInsertTicket, [
-          orderId,
-          ticketCode,
-          "active",
-        ]);
-        console.log("Ticket insert result:", ticketResult); // Log hasil insert tiket
+      const insertTicketQuery =
+        "INSERT INTO tickets (order_id, ticket_code, status) VALUES (?, ?, ?)";
+      const insertResult = await query(insertTicketQuery, [
+        order_id,
+        ticketCode,
+        "Active",
+      ]);
 
-        if (ticketResult.affectedRows > 0) {
-          console.log("Ticket created successfully!");
-        } else {
-          console.log("Failed to create ticket");
-        }
+      if (insertResult.affectedRows > 0) {
+        console.log("Ticket created successfully for order_id:", order_id);
+      } else {
+        console.log("Failed to create ticket for order_id:", order_id);
       }
     }
-    // Respond with success if update is successful
-    res
-      .status(200)
-      .json({ message: "Transaction status updated successfully" });
-  } catch (err) {
-    console.error("Error updating transaction status: ", err);
-    res.status(500).json({ error: "Failed to update transaction status" });
+
+    res.status(200).json({ msg: "Payment callback processed successfully" });
+  } catch (error) {
+    console.error("Error processing payment callback:", error);
+    return res
+      .status(500)
+      .json({ msg: "Gagal memproses payment callback", error: error.message });
   }
 };
