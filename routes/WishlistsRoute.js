@@ -4,7 +4,7 @@ const {
   removeFromWishlist,
   getWishlist,
 } = require("../controllers/WishlistsaController");
-//const authenticateUser = require("../middleware/Passport.js");
+
 const verifyToken = require("../middleware/verifytoken.js");
 const WishlistRoute = express.Router();
 

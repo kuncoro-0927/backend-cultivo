@@ -4,9 +4,7 @@ const passportJWT = require("passport-jwt");
 const ExtractJWT = passportJWT.ExtractJwt;
 const StrategyJWT = passportJWT.Strategy;
 
-const secretKey =
-  process.env.JWT_SECRET ||
-  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af";
+const secretKey = process.env.JWT_SECRET;
 
 passport.use(
   new StrategyJWT(

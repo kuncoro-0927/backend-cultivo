@@ -1,16 +1,19 @@
 const express = require("express");
 const passport = require("../middleware/PassportOauth");
+const loginLimiter = require("../middleware/LoginLimit.js");
 const {
   registerUser,
   loginUser,
   loginWithGoogle,
   getUserData,
   logout,
+  requestPasswordReset,
+  resetPassword,
 } = require("../controllers/AuthController");
 const AuthRoute = express.Router();
 const verifyToken = require("../middleware/verifytoken.js");
-AuthRoute.post("/registerrr", registerUser);
-AuthRoute.post("/login", loginUser);
+AuthRoute.post("/register", registerUser);
+AuthRoute.post("/login", loginLimiter, loginUser);
 AuthRoute.get(
   "/auth/google",
   passport.authenticate("google", {
@@ -41,4 +44,6 @@ AuthRoute.get("/verify-token", verifyToken, (req, res) => {
   });
 });
 
+AuthRoute.post("/forgot-password", requestPasswordReset);
+AuthRoute.post("/reset-password", resetPassword);
 module.exports = AuthRoute;

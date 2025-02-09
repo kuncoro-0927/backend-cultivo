@@ -2,90 +2,149 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { query } = require("../config/db.js");
 const { sendOTPEmail } = require("../services/emailService");
-const secretKey =
-  process.env.JWT_SECRET ||
-  "db071ab9603b826cda4d897660ff3ff601fa671682a78dc7a9e24e894f42f5af";
+const nodemailer = require("nodemailer");
+const secretKey = process.env.JWT_SECRET;
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "Semua field harus diisi" });
-  }
-
-  if (password.length < 8) {
-    return res.status(400).json({ message: "Password minimal 8 karakter" });
-  }
-
   try {
-    const userExists = await query("SELECT * FROM users WHERE email = ?", [
+    if (!name.trim()) {
+      return res
+        .status(400)
+        .json({ field: "name", message: "Nama tidak boleh kosong" });
+    }
+    if (!email.trim()) {
+      return res
+        .status(400)
+        .json({ field: "email", message: "Email tidak boleh kosong" });
+    }
+    if (!password.trim()) {
+      return res
+        .status(400)
+        .json({ field: "password", message: "Password tidak boleh kosong" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res
+        .status(400)
+        .json({ field: "email", message: "Format email tidak valid" });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ field: "password", message: "Password minimal 8 karakter" });
+    }
+
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+      return res.status(400).json({
+        field: "name",
+        message: "Nama hanya boleh mengandung huruf dan spasi",
+      });
+    }
+
+    const emailExists = await query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
-    if (userExists.length > 0) {
-      return res.status(400).json({ message: "Email sudah terdaftar" });
+    if (emailExists.length > 0) {
+      return res
+        .status(400)
+        .json({ field: "email", message: "Email sudah terdaftar" });
+    }
+
+    const usernameExists = await query("SELECT id FROM users WHERE name = ?", [
+      name,
+    ]);
+    if (usernameExists.length > 0) {
+      return res
+        .status(400)
+        .json({ field: "name", message: "Nama sudah dipakai" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await query(
-      "INSERT INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)",
-      [name, email, hashedPassword, 2]
-    );
+    await query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [
+      name,
+      email,
+      hashedPassword,
+    ]);
 
-    const token = jwt.sign(
-      { id: result.insertId, name, role: "user" },
-      secretKey,
-      { expiresIn: "1h" }
-    );
+    const otp = generateOTP();
 
-    return res.status(201).json({ message: "Registrasi berhasil", token });
-  } catch (err) {
-    console.error("Error saat registrasi:", err);
-    return res.status(500).json({ message: "Terjadi kesalahan server" });
+    const token = jwt.sign({ email, otp }, process.env.JWT_SECRET, {
+      expiresIn: "5m",
+    });
+
+    await sendOTPEmail(email, otp);
+
+    res
+      .status(201)
+      .json({ message: "User registered, OTP sent to email", token });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res
+      .status(500)
+      .json({ message: "Daftar akun gagal", error: error.message });
   }
 };
-// Controller Login
+
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email dan password harus diisi" });
+  if (!email) {
+    return res.status(400).json({
+      field: "email",
+      message: "Email harus diisi",
+    });
+  }
+  if (!password) {
+    return res.status(400).json({
+      field: "password",
+      message: "Password harus diisi",
+    });
   }
 
   try {
     const result = await query("SELECT * FROM users WHERE email = ?", [email]);
 
     if (result.length === 0) {
-      return res.status(400).json({ message: "Email tidak ditemukan" });
-    }
-
-    const user = result[0];
-
-    const generateOTP = () =>
-      Math.floor(100000 + Math.random() * 900000).toString();
-    if (!user.isverified) {
-      // Generate OTP
-      const otp = generateOTP();
-
-      // Token OTP dengan JWT
-      const otpToken = jwt.sign(
-        { email, otp }, // Payload: email dan OTP
-        process.env.JWT_SECRET,
-        { expiresIn: "5m" } // Token berlaku selama 5 menit
-      );
-
-      // Kirim OTP ke email pengguna
-      await sendOTPEmail(email, otp);
-
-      return res.status(200).json({
-        message: "Mohon verifikasi Email Anda sebelum login",
-        isverified: false,
-        otpToken, // Kirim token OTP untuk proses verifikasi
+      return res.status(400).json({
+        field: "email",
+        message: "Email yang Anda masukkan salah",
       });
     }
+    const user = result[0];
+
+    if (!user.isverified) {
+      const generateOTP = () =>
+        Math.floor(100000 + Math.random() * 900000).toString();
+
+      const otp = generateOTP();
+      const otpToken = jwt.sign({ email, otp }, process.env.JWT_SECRET, {
+        expiresIn: "5m",
+      });
+
+      await sendOTPEmail(email, otp);
+
+      return res.status(400).json({
+        field: "email",
+        message: "Mohon verifikasi Email Anda sebelum login",
+        isverified: false,
+        otpToken,
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Password salah" });
+      return res.status(400).json({
+        field: "password",
+        message: "Password salah",
+      });
     }
 
     const role =
@@ -101,18 +160,15 @@ const loginUser = async (req, res) => {
         phonenumber: user.phonenumber,
         role: role,
       },
-      secretKey,
-      {
-        expiresIn: "1h",
-      }
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
-    // Set cookie dengan token
     res.cookie("token", token, {
-      httpOnly: true, // Cookie tidak bisa diakses oleh JavaScript
-      secure: process.env.NODE_ENV === "production", // Hanya dikirim lewat HTTPS di production
-      sameSite: "strict", // Mencegah pengiriman lintas domain
-      maxAge: 3600000, // Durasi cookie (1 jam)
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 3600000, // 1 jam
     });
 
     return res.status(200).json({
@@ -132,72 +188,28 @@ const loginUser = async (req, res) => {
 };
 
 const loginWithGoogle = (req, res) => {
-  // Setelah login berhasil melalui Google, user sudah ada di req.user
-  const user = req.user; // User dari passport
+  const user = req.user;
 
-  // Membuat token JWT
   const token = jwt.sign(
     {
-      id: user.id, // Mengambil id dari user
-      email: user.email, // Mengambil email dari user
-      role: user.role, // Mengambil role dari user
-      name: user.name, // Mengambil nama dari user
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
   );
 
-  // Menyimpan token JWT ke dalam cookie
   res.cookie("token", token, {
     httpOnly: true,
-    secure: false,
-    // secure: process.env.NODE_ENV === "production", // Menggunakan secure di production
+    secure: process.env.NODE_ENV === "production",
     sameSite: "Strict",
   });
-  res.redirect("http://localhost:5173/");
-  // res.status(200).json({
-  //   message: "Login berhasil",
-  //   token, // Kirim token di response body
-  // });
-  // Redirect ke halaman frontend setelah login berhasil
-  // Ganti dengan URL frontend Anda
+  res.redirect(process.env.FRONTEND_URL);
 };
 
-// const getUserData = (req, res) => {
-//   const user = req.user;
-
-//   console.log("User data in getUserData:", user);
-
-//   if (!user) {
-//     return res.status(404).json({ message: "User tidak ditemukan" });
-//   }
-
-//   query(
-//     "SELECT id, name, email FROM users WHERE id = ?",
-//     [user.id],
-//     (error, result) => {
-//       if (error) {
-//         console.error("Database error:", error);
-//         return res
-//           .status(500)
-//           .json({ message: "Terjadi kesalahan pada server" });
-//       }
-
-//       if (result.length > 0) {
-//         return res.status(200).json({
-//           id: result[0].id,
-//           name: result[0].name,
-//           email: result[0].email,
-//         });
-//       } else {
-//         return res.status(404).json({ message: "User tidak ditemukan" });
-//       }
-//     }
-//   );
-// };
-
 const getUserData = (req, res) => {
-  // Data pengguna sudah ada di req.user setelah verifikasi token
   const user = req.user;
 
   if (!user) {
@@ -213,7 +225,6 @@ const getUserData = (req, res) => {
 
 const logout = (req, res) => {
   try {
-    console.log("Menghapus cookie token");
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -225,10 +236,111 @@ const logout = (req, res) => {
     res.status(500).json({ message: "Terjadi kesalahan saat logout" });
   }
 };
+
+const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ field: "email", message: "Email wajib diisi" });
+  }
+
+  try {
+    const user = await query("SELECT id FROM users WHERE email = ?", [email]);
+    if (user.length === 0) {
+      return res
+        .status(404)
+        .json({ field: "email", message: "Email tidak terdaftar" });
+    }
+
+    const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    const supportLink = `${process.env.FRONTEND_URL}/kontak`;
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Dukungan Cultivo" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Reset Kata Sandi Anda - Cultivo",
+      html: `
+        <div style="max-width: 500px; margin: auto; font-family: Arial, sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+          <h2 style="color: white;">Lupa kata sandi Anda?</h2>
+          <p style="color: #B0B0B0;">Jangan khawatir, kami siap membantu! Klik tombol di bawah ini untuk mengatur ulang kata sandi Anda.</p>
+          
+          <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #198754; color: white; text-decoration: none; font-weight: bold; border-radius: 5px; margin-top: 10px;">
+            Atur Ulang Kata Sandi
+          </a>
+    
+          <p style="color: #B0B0B0; margin-top: 15px;">
+            Tautan ini hanya berlaku untuk sekali pakai.<br> Berlaku selama <strong>15 menit</strong>.
+          </p>
+    
+          <p style="color: #B0B0B0;">
+            Jika Anda tidak meminta reset kata sandi atau memiliki pertanyaan, silakan 
+            <a href="${supportLink}" style="color: #4DA8DA;">hubungi kami</a>.
+          </p>
+    
+          <hr style="border: none; border-top: 1px solid #444; margin: 20px 0;">
+          <p style="font-size: 12px; color: gray;">© 2025 Cultivo. Semua hak dilindungi.</p>
+        </div>
+      `,
+    });
+
+    res
+      .status(200)
+      .json({ message: "Link reset password telah dikirim ke email" });
+  } catch (error) {
+    console.error("Error mengirim reset password:", error);
+    res.status(500).json({ message: "Gagal mengirim reset password" });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const email = decoded.email;
+
+    if (newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ field: "password", message: "Password minimal 8 karakter" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await query("UPDATE users SET password = ? WHERE email = ?", [
+      hashedPassword,
+      email,
+    ]);
+
+    res.status(200).json({ message: "Password berhasil direset" });
+  } catch (error) {
+    console.error("Error reset password:", error);
+    res
+      .status(400)
+      .json({ message: "Token tidak valid atau sudah kadaluarsa" });
+  }
+};
 module.exports = {
   registerUser,
   loginUser,
   loginWithGoogle,
   getUserData,
   logout,
+  requestPasswordReset,
+  resetPassword,
 };

@@ -195,7 +195,6 @@ const getAllOrders = async (req, res) => {
 
 const getAll = async (req, res) => {
   try {
-    // Query untuk mengambil data yang diperlukan dengan join antara tabel orders, users, dan agrotourism
     const sql = `
       SELECT 
         o.order_id, 
@@ -213,10 +212,8 @@ const getAll = async (req, res) => {
       ORDER BY o.created_at DESC
     `;
 
-    // Menjalankan query untuk mendapatkan data
     const orders = await query(sql);
 
-    // Mengirimkan data dalam response
     return res.json(orders);
   } catch (error) {
     console.error("Error getting order details:", error);
@@ -244,28 +241,19 @@ const getTransactions = async (req, res) => {
   }
 };
 
-// Fungsi untuk menghitung total amount dengan status 'success'
 const getTotalAmountSuccess = async (req, res) => {
   try {
-    console.log("Starting query for total amount...");
-
     const totalAmountQuery = `
       SELECT SUM(amount) AS total_amount
       FROM transactions
       WHERE status = 'success';
     `;
-    console.log("Executing query:", totalAmountQuery);
 
     const [result] = await query(totalAmountQuery);
 
-    console.log("Query result:", result); // Log the full result to understand its structure
-
-    // Mengakses total_amount dengan cara yang tepat
     const totalAmount = result.total_amount
       ? parseFloat(result.total_amount)
       : 0;
-
-    console.log("Calculated total amount:", totalAmount);
 
     return res.json({ totalAmount });
   } catch (error) {

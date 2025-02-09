@@ -97,6 +97,7 @@ exports.getUserTickets = async (req, res) => {
     const tickets = await query(
       `
         SELECT 
+          t.id,
           t.ticket_code, 
           t.status, 
           t.order_id, 
@@ -111,7 +112,9 @@ exports.getUserTickets = async (req, res) => {
         JOIN orders o ON t.order_id = o.order_id
         JOIN agrotourism a ON o.agrotourism_id = a.id
         JOIN users u ON o.user_id = u.id
-        WHERE o.user_id = ?`,
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC, t.id DESC
+      `,
       [user_id]
     );
 

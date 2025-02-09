@@ -47,7 +47,16 @@ async function getWishlist(req, res) {
   const { id: user_id } = req.user;
   try {
     const wishlist = await query(
-      `SELECT w.agrotourism_id, a.name, a.description, a.price, a.url_image FROM wishlist w JOIN agrotourism a ON w.agrotourism_id = a.id WHERE w.user_id = ?`,
+      `SELECT 
+          w.agrotourism_id, 
+          a.name, 
+          a.description, 
+          a.price, 
+          a.url_image, 
+          a.rating  
+       FROM wishlist w 
+       JOIN agrotourism a ON w.agrotourism_id = a.id 
+       WHERE w.user_id = ?`,
       [user_id]
     );
 

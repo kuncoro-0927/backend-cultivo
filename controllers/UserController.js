@@ -15,7 +15,6 @@ const updateUserProfile = async (req, res) => {
       data: { firstname, lastname, phonenumber },
     });
   } catch (error) {
-    console.log("Update profil gagal", error);
     return res.status(500).json({
       msg: "Update profil gagal",
       error: error.message,
@@ -40,7 +39,6 @@ const getUserData = async (req, res) => {
       data: result[0],
     });
   } catch (error) {
-    console.log("Error fetching user data", error);
     return res
       .status(500)
       .json({ msg: "Error fetching user data", error: error.message });
@@ -74,13 +72,11 @@ const getTopUsers = async (req, res) => {
     `;
     const result = await query(sql);
 
-    console.log("Query Result:", result);
     res.json({
       success: true,
       data: result,
     });
   } catch (error) {
-    console.error("Error fetching top agrotourism:", error);
     res.status(500).json({ success: false, message: "Failed to fetch data" });
   }
 };

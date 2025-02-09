@@ -20,6 +20,8 @@
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-mysql-session": "^3.0.3",
+    "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^9.0.2",

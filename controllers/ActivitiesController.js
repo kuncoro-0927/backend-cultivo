@@ -47,7 +47,6 @@ const tambahAktivitas = async (req, res) => {
         data: { city, image },
       });
     } catch (error) {
-      console.log("Penambahan aktivitas gagal", error);
       return res.status(500).json({
         msg: "Penambahan aktivitas gagal",
         error: error.message,
@@ -61,7 +60,6 @@ const ambilDataAktivitas = async (req, res) => {
     const result = await query("SELECT * FROM activities");
     return res.status(200).json({ msg: "Ambil data berhasil", data: result });
   } catch (error) {
-    console.log("Ambil data gagal", error);
     return res
       .status(500)
       .json({ msg: "Ambil data gagal", error: error.message });
@@ -97,7 +95,6 @@ const rubahAktivitas = async (req, res) => {
         data: { city, image },
       });
     } catch (error) {
-      console.log("Update data aktivitas gagal", error);
       return res.status(500).json({
         msg: "Update data aktivitas gagal",
         error: error.message,
@@ -113,7 +110,6 @@ const hapusAktivitas = async (req, res) => {
     await query("DELETE FROM activities WHERE id = ?", [id]);
     return res.status(200).json({ msg: "Hapus aktivitas berhasil" });
   } catch (error) {
-    console.log("Hapus aktivitas gagal", error);
     return res
       .status(500)
       .json({ msg: "Hapus aktivitas gagal", error: error.message });
@@ -128,7 +124,6 @@ const ambilAktivitasId = async (req, res) => {
       .status(200)
       .json({ msg: "Ambil data ID berhasil", data: result });
   } catch (error) {
-    console.log("Ambil data gagal", error);
     return res
       .status(500)
       .json({ msg: "Ambil data gagal", error: error.message });

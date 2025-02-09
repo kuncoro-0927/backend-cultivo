@@ -8,7 +8,7 @@ const tambahDaerah = async (req, res) => {
       return res.status(400).json({ msg: err.message });
     }
 
-    const { name } = req.body;
+    const { name, provinces } = req.body;
     const imageName = req.file ? req.file.filename : null;
     const image = imageName ? path.join("public/images", imageName) : null;
     const url = imageName
@@ -17,15 +17,14 @@ const tambahDaerah = async (req, res) => {
 
     try {
       await query(
-        "INSERT INTO city (name, image, url, created_at, updated_at) VALUES(?, ?, ?, NOW(), NOW())",
-        [name, image, url]
+        "INSERT INTO city (name, provinces, image, url, created_at, updated_at) VALUES(?, ?, ?, ?, NOW(), NOW())",
+        [name, provinces, image, url]
       );
       return res.status(200).json({
         msg: "Penambahan daerah berhasil",
-        data: { name, image, url },
+        data: { name, provinces, image, url },
       });
     } catch (error) {
-      console.log("Penambahan daerah gagal", error);
       return res.status(500).json({
         msg: "Penambahan daerah gagal",
         error: error.message,
@@ -39,7 +38,6 @@ const ambilDataDaerah = async (req, res) => {
     const result = await query("SELECT * FROM city");
     return res.status(200).json({ msg: "Ambil data berhasil", data: result });
   } catch (error) {
-    console.log("Ambil data gagal", error);
     return res
       .status(500)
       .json({ msg: "Ambil data gagal", error: error.message });
@@ -52,36 +50,40 @@ const rubahDaerah = async (req, res) => {
       return res.status(400).json({ msg: err.message });
     }
 
-    const { name } = req.body;
     const { id } = req.params;
-    let imageName = req.file ? req.file.filename : null;
-    let image = imageName ? path.join("public/images", imageName) : null;
-    let url = imageName
+    const { name, provinces } = req.body;
+    const imageName = req.file ? req.file.filename : null;
+    const image = imageName ? path.join("public/images", imageName) : null;
+    const url = imageName
       ? `${req.protocol}://${req.get("host")}/images/${imageName}`
       : null;
 
     try {
-      if (!imageName) {
-        const result = await query("SELECT image FROM city WHERE id = ?", [id]);
-        image = result[0]?.image;
-        url = result[0]?.image
-          ? `${req.protocol}://${req.get("host")}/${result[0].image}`
-          : null;
+      const daerah = await query("SELECT image FROM city WHERE id = ?", [id]);
+      if (daerah.length === 0) {
+        return res.status(404).json({ msg: "Data daerah tidak ditemukan" });
+      }
+
+      let newImage = daerah[0].image;
+      let newUrl = url;
+
+      if (imageName) {
+        newImage = image;
+        newUrl = url;
       }
 
       await query(
-        "UPDATE city SET name = ?, image = ?, url = ?, updated_at = NOW() WHERE id = ?",
-        [name, image, url, id]
+        "UPDATE city SET name = ?, provinces = ?, image = ?, url = ?, updated_at = NOW() WHERE id = ?",
+        [name, provinces, newImage, newUrl, id]
       );
 
       return res.status(200).json({
-        msg: "Update data daerah berhasil",
-        data: { name, image, url },
+        msg: "Update daerah berhasil",
+        data: { id, name, provinces, image: newImage, url: newUrl },
       });
     } catch (error) {
-      console.log("Update data daerah gagal", error);
       return res.status(500).json({
-        msg: "Update data daerah gagal",
+        msg: "Update daerah gagal",
         error: error.message,
       });
     }
@@ -95,7 +97,6 @@ const hapusDaerah = async (req, res) => {
     await query("DELETE FROM city WHERE id = ?", [id]);
     return res.status(200).json({ msg: "Hapus daerah berhasil" });
   } catch (error) {
-    console.log("Hapus daerah gagal", error);
     return res
       .status(500)
       .json({ msg: "Hapus daerah gagal", error: error.message });
@@ -110,7 +111,6 @@ const ambilDaerahId = async (req, res) => {
       .status(200)
       .json({ msg: "Ambil data ID berhasil", data: result });
   } catch (error) {
-    console.log("Ambil data gagal", error);
     return res
       .status(500)
       .json({ msg: "Ambil data gagal", error: error.message });

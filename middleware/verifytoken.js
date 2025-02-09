@@ -7,10 +7,9 @@ const verifyToken = (req, res, next) => {
   }
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      console.log("Token tidak valid:", err);
       return res.status(403).json({ message: "Token tidak valid" });
     }
-    console.log("Decoded user data:", decoded);
+
     req.user = decoded;
     next();
   });

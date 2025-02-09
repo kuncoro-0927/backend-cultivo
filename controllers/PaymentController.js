@@ -3,7 +3,7 @@ const { query } = require("../config/db");
 const crypto = require("crypto");
 
 let snap = new midtransClient.Snap({
-  isProduction: false,
+  isProduction: false, //sandbox
   serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
@@ -19,6 +19,9 @@ exports.processPayment = async (req, res) => {
       },
       customer_details: {
         email: email,
+      },
+      callbacks: {
+        finish: `${process.env.FRONTEND_URL}/account/bookings`,
       },
     };
 
@@ -109,9 +112,7 @@ exports.handlePaymentCallback = async (req, res) => {
       ]);
 
       if (insertResult.affectedRows > 0) {
-        console.log("Ticket created successfully for order_id:", order_id);
       } else {
-        console.log("Failed to create ticket for order_id:", order_id);
       }
     }
 

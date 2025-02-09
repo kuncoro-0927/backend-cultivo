@@ -9,7 +9,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/cultivo/api/auth/google/callback",
+      callbackURL: `${process.env.BACKEND_URL}/cultivo/api/auth/google/callback`,
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
