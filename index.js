@@ -39,7 +39,10 @@ app.use(bodyParser.json());
 app.use(passport.initialize());
 
 require("dotenv").config();
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+app.use(
+  "/cultivo/api/images",
+  express.static(path.join(__dirname, "public/images"))
+);
 
 app.listen(process.env.APP_PORT, async () => {
   await testConnection();
