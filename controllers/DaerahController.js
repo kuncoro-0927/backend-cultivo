@@ -12,7 +12,7 @@ const tambahDaerah = async (req, res) => {
     const imageName = req.file ? req.file.filename : null;
     const image = imageName ? path.join("public/images", imageName) : null;
     const url = imageName
-      ? `${req.protocol}://${req.get("host")}/images/${imageName}`
+      ? `${req.protocol}://${req.get("host")}/cultivo/api/images/${imageName}`
       : null;
 
     try {
@@ -55,7 +55,7 @@ const rubahDaerah = async (req, res) => {
     const imageName = req.file ? req.file.filename : null;
     const image = imageName ? path.join("public/images", imageName) : null;
     const url = imageName
-      ? `${req.protocol}://${req.get("host")}/images/${imageName}`
+      ? `${req.protocol}://${req.get("host")}/cultivo/api/images/${imageName}`
       : null;
 
     try {

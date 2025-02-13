@@ -44,16 +44,18 @@ const tambahAgrotourism = async (req, res) => {
       : [];
 
     const imageUrl = image
-      ? `${req.protocol}://${req.get("host")}/images/${path.basename(image)}`
+      ? `${req.protocol}://${req.get(
+          "host"
+        )}/cultivo/api/images/${path.basename(image)}`
       : null;
 
     const galleryUrls =
       gallery.length > 0
         ? gallery.map(
             (file) =>
-              `${req.protocol}://${req.get("host")}/images/${path.basename(
-                file
-              )}`
+              `${req.protocol}://${req.get(
+                "host"
+              )}/cultivo/api/images/${path.basename(file)}`
           )
         : [];
 
@@ -225,14 +227,16 @@ const updateAgrotourism = async (req, res) => {
       const updatedGallery = newGallery.length > 0 ? newGallery : oldGallery;
 
       const imageUrl = updatedImage
-        ? `${req.protocol}://${req.get("host")}/images/${path.basename(
-            updatedImage
-          )}`
+        ? `${req.protocol}://${req.get(
+            "host"
+          )}/cultivo/api/images/${path.basename(updatedImage)}`
         : null;
 
       const galleryUrls = updatedGallery.map(
         (file) =>
-          `${req.protocol}://${req.get("host")}/images/${path.basename(file)}`
+          `${req.protocol}://${req.get(
+            "host"
+          )}/cultivo/api/images/${path.basename(file)}`
       );
 
       await query(

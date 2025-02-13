@@ -3,6 +3,12 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const jwt = require("jsonwebtoken");
 const { query } = require("../config/db");
+const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+
+const generateRandomPassword = () => {
+  return crypto.randomBytes(16).toString("hex");
+};
 
 passport.use(
   new GoogleStrategy(
@@ -26,14 +32,17 @@ passport.use(
 
           return done(null, { ...user[0], token });
         } else {
+          const randomPassword = generateRandomPassword();
+          const hashedPassword = await bcrypt.hash(randomPassword, 10);
           const newUser = await query(
-            "INSERT INTO users (email, name, role_id, google_id, isverified) VALUES (?, ?, ?, ?,?)",
+            "INSERT INTO users (email, name, role_id, google_id, isverified, password) VALUES (?, ?, ?, ?,?,?)",
             [
               profile.emails[0].value,
               profile.displayName,
               "2",
               profile.id,
               true,
+              hashedPassword,
             ]
           );
 
