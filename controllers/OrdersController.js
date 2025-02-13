@@ -1,8 +1,7 @@
 const { query } = require("../config/db");
 const midtransClient = require("midtrans-client");
 const crypto = require("crypto");
-const { parseISO } = require("date-fns");
-const { zonedTimeToUtc } = require("date-fns-tz");
+
 const snap = new midtransClient.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY,
@@ -34,15 +33,8 @@ const createOrder = async (req, res) => {
 
     const ticketPrice = agroData.price;
     const total_price = ticketPrice * quantity;
-    const { parseISO, format } = require("date-fns");
 
-    const selectedDate = parseISO(req.body.selected_date);
-    const jakartaTime = format(selectedDate, "yyyy-MM-dd HH:mm:ssXXX", {
-      timeZone: "Asia/Jakarta",
-    });
-    const utcTime = format(parseISO(jakartaTime), "yyyy-MM-dd HH:mm:ssXXX", {
-      timeZone: "UTC",
-    });
+    const selectedDate = req.body.selected_date;
 
     const order_id = `${Date.now()}`;
 
@@ -53,7 +45,7 @@ const createOrder = async (req, res) => {
         order_id,
         id,
         agrotourism_id,
-        jakartaTime,
+        selectedDate,
         quantity,
         total_price,
         hashedToken,
